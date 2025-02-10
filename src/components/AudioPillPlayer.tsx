@@ -6,6 +6,8 @@ import { useDrag, useDrop, DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Music, Volume2, VolumeX, Trash2, Play, Pause, Upload } from 'lucide-react';
 
+
+//defining structure of tracks
 interface AudioTrack {
   id: string;
   file: File;
@@ -25,6 +27,8 @@ interface DragItem {
   index: number;
 }
 
+
+//timeline implementation
 const TimelineGraph = ({ duration = 210, currentTime = 0 }) => {
   const marks = Array.from({ length: Math.ceil(duration / 10) + 1 }, (_, i) => i * 10);
   
@@ -64,6 +68,7 @@ const formatTime = (seconds: number): string => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
+//defining individual track components
 const TrackItem = React.memo(({ 
   track, 
   index,
@@ -88,6 +93,9 @@ const TrackItem = React.memo(({
   const wasPlayingRef = useRef(false);
   const waveformContainerRef = useRef<HTMLDivElement>(null);
 
+
+
+//drag and drop logic
   const [{ isDragging }, drag] = useDrag({
     type: ItemType,
     item: { id: track.id, index } as DragItem,
@@ -111,6 +119,8 @@ const TrackItem = React.memo(({
     drag(drop(node));
   };
 
+
+  //waveform implemntation 
   useEffect(() => {
     if (waveformContainerRef.current && track.waveSurfer) {
       track.waveSurfer.setOptions({ 
@@ -157,6 +167,8 @@ const TrackItem = React.memo(({
     setIsHovering(false);
   };
 
+
+//track controls
   return (
     <div 
       ref={dragDropRef}
@@ -176,6 +188,7 @@ const TrackItem = React.memo(({
           {track.file.name}
         </span>
       </div>
+
 
       <div
         ref={waveformContainerRef}
@@ -252,6 +265,8 @@ const TrackItem = React.memo(({
   );
 });
 
+
+//handling of application state 
 TrackItem.displayName = 'TrackItem';
 
 export default function MultiAudioPlayer() {
@@ -328,6 +343,8 @@ export default function MultiAudioPlayer() {
     );
   };
 
+
+  //track upload and creation
   const createTrack = (file: File): AudioTrack => {
     const id = `track-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const objectUrl = URL.createObjectURL(file);
@@ -388,6 +405,7 @@ export default function MultiAudioPlayer() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  //clean up of instances
   useEffect(() => {
     return () => {
       audioTracks.forEach(track => {
@@ -399,6 +417,9 @@ export default function MultiAudioPlayer() {
     };
   }, []);
 
+
+
+  //UI structure 
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="absolute inset-0 min-h-screen w-full bg-gradient-to-b from-gray-900 to-black overflow-auto">
