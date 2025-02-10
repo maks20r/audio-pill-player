@@ -2,6 +2,19 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Installing Dependancies
 
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+```
+
+## Installing Packages
+
+```bash
 npm install wavesurfer.js react-dnd react-dnd-html5-backend lucide-react
 # or
 yarn add wavesurfer.js react-dnd react-dnd-html5-backend lucide-react
@@ -9,6 +22,7 @@ yarn add wavesurfer.js react-dnd react-dnd-html5-backend lucide-react
 pnpm add wavesurfer.js react-dnd react-dnd-html5-backend lucide-react
 # or
 bun add wavesurfer.js react-dnd react-dnd-html5-backend lucide-react
+```
 
 ## Getting Started
 
@@ -33,6 +47,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Running Development Server 
 
+```bash
 npm run dev
 # or
 yarn dev
@@ -40,11 +55,12 @@ yarn dev
 pnpm dev
 # or
 bun dev
-
+```
 ## Building For Production
 
 1. Create production build
 
+```bash
 npm run build
 # or
 yarn build
@@ -52,9 +68,11 @@ yarn build
 pnpm build
 # or
 bun build
+```
 
 2. Start production server 
 
+```bash
 npm start
 # or
 yarn start
@@ -62,6 +80,8 @@ yarn start
 pnpm start
 # or
 bun start
+```
+
 
 ## Learn More
 
