@@ -6,8 +6,6 @@ import { useDrag, useDrop, DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Music, Volume2, VolumeX, Trash2, Play, Pause, Upload } from 'lucide-react';
 
-
-//defines structure of auditrack 
 interface AudioTrack {
   id: string;
   file: File;
@@ -21,16 +19,12 @@ interface AudioTrack {
   duration: number;
 }
 
-
-//data passed on during drag and drop 
 const ItemType = 'track';
 interface DragItem {
   id: string;
   index: number;
 }
 
-
-//Timeline
 const TimelineGraph = ({ duration = 210, currentTime = 0 }) => {
   const marks = Array.from({ length: Math.ceil(duration / 10) + 1 }, (_, i) => i * 10);
   
@@ -70,8 +64,6 @@ const formatTime = (seconds: number): string => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-
-//defining individual track components
 const TrackItem = React.memo(({ 
   track, 
   index,
@@ -94,10 +86,8 @@ const TrackItem = React.memo(({
   const [isDraggingWaveform, setIsDraggingWaveform] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const wasPlayingRef = useRef(false);
+  const waveformContainerRef = useRef<HTMLDivElement>(null);
 
-
-
-  //drag and drop logic 
   const [{ isDragging }, drag] = useDrag({
     type: ItemType,
     item: { id: track.id, index } as DragItem,
@@ -117,10 +107,9 @@ const TrackItem = React.memo(({
     },
   });
 
-
-
-  //waveform integration 
-  const waveformContainerRef = useRef<HTMLDivElement>(null);
+  const dragDropRef = (node: HTMLDivElement | null) => {
+    drag(drop(node));
+  };
 
   useEffect(() => {
     if (waveformContainerRef.current && track.waveSurfer) {
@@ -129,31 +118,36 @@ const TrackItem = React.memo(({
         dragToSeek: true,  
       });
       track.waveSurfer.load(track.objectUrl);
-      
-      track.waveSurfer.on('ready', () => {
+
+      const onReady = () => {
         track.waveSurfer?.seekTo(track.currentTime);
         setDuration(track.waveSurfer?.getDuration() || 0);
         if (track.isPlaying) {
           track.waveSurfer?.play();
         }
-      });
+      };
 
-      track.waveSurfer.on('audioprocess', () => {
+      const onAudioProcess = () => {
         if (!isDraggingWaveform) {
           setCurrentTime(track.waveSurfer?.getCurrentTime() || 0);
         }
-      });
-  
-      track.waveSurfer.on('seek', () => {
+      };
+
+      const onInteraction = () => {
         setCurrentTime(track.waveSurfer?.getCurrentTime() || 0);
-      });
-  
+      };
+
+      track.waveSurfer.on('ready', onReady);
+      track.waveSurfer.on('audioprocess', onAudioProcess);
+      track.waveSurfer.on('interaction', onInteraction);
+
       return () => {
-        track.waveSurfer.un('audioprocess');
-        track.waveSurfer.un('seek');
+        track.waveSurfer?.un('ready', onReady);
+        track.waveSurfer?.un('audioprocess', onAudioProcess);
+        track.waveSurfer?.un('interaction', onInteraction);
       };
     }
-  }, [track.waveSurfer, track.objectUrl]); 
+  }, [track.waveSurfer, track.objectUrl]);
 
   const handleMouseEnter = () => {
     setIsHovering(true);
@@ -163,13 +157,9 @@ const TrackItem = React.memo(({
     setIsHovering(false);
   };
 
-
-
-
-
-  //controls UI
   return (
-    <div ref={(node) => drag(drop(node))}
+    <div 
+      ref={dragDropRef}
       className={`
         p-6 rounded-lg mb-4 
         bg-gradient-to-r from-gray-900 to-gray-800
@@ -178,7 +168,8 @@ const TrackItem = React.memo(({
         transition-all duration-300
         hover:shadow-purple-900/20 hover:shadow-xl
         ${isDragging ? 'opacity-50' : 'opacity-100'}
-      `}>
+      `}
+    >
       <div className="flex items-center gap-4 mb-4">
         <Music className="w-6 h-6 text-purple-400" />
         <span className="font-gothic text-lg text-purple-300">
@@ -261,10 +252,6 @@ const TrackItem = React.memo(({
   );
 });
 
-
-
-
-//main and track managment 
 TrackItem.displayName = 'TrackItem';
 
 export default function MultiAudioPlayer() {
@@ -341,9 +328,6 @@ export default function MultiAudioPlayer() {
     );
   };
 
-
-
-  //file upload and track cration 
   const createTrack = (file: File): AudioTrack => {
     const id = `track-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const objectUrl = URL.createObjectURL(file);
@@ -404,8 +388,6 @@ export default function MultiAudioPlayer() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-
-  //destroying waveform 
   useEffect(() => {
     return () => {
       audioTracks.forEach(track => {
@@ -417,13 +399,12 @@ export default function MultiAudioPlayer() {
     };
   }, []);
 
-  //ui structure 
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="absolute inset-0 min-h-screen w-full bg-gradient-to-b from-gray-900 to-black overflow-auto">
         <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-gothic text-center text-purple-300 mb-8 tracking-wider">
-            Oblivion Audio
+          Oblivion Audio
           </h1>
 
           <div className="mb-8 flex justify-center gap-4">
@@ -451,54 +432,52 @@ export default function MultiAudioPlayer() {
               Upload Audio Files
             </label>
           
-          {audioTracks.length > 0 && (
-            <button
-              onClick={() => {
-                setIsAllPlaying(!isAllPlaying);
-                audioTracks.forEach(track => {
-                  if (track.isReady && track.waveSurfer) {
-                    isAllPlaying ? track.waveSurfer.pause() : track.waveSurfer.play();
-                  }
-                });
-                setAudioTracks(prev =>
-                  prev.map(t =>
-                    t.isReady ? { ...t, isPlaying: !isAllPlaying } : t
-                  )
-                );
-              }}
-              className="
-                flex items-center gap-2 px-6 py-3 
-                bg-gray-800 text-purple-300 
-                rounded-lg
-                hover:bg-gray-700 
-                transition-colors duration-300
-                shadow-lg shadow-black/50
-              "
-            >
-              {isAllPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              {isAllPlaying ? 'Pause All' : 'Play All'}
-            </button>
-          )}
-        </div>
-        
-
-        
-        <div className="space-y-2"> 
-          {audioTracks.map((track, index) => (
-            <TrackItem
-              key={track.id}
-              track={track}
-              index={index}
-              moveTrack={moveTrack}
-              toggleMute={toggleMute}
-              handleVolumeChange={handleVolumeChange}
-              removeTrack={removeTrack}
-              togglePlayPause={togglePlayPause}
-            />
-          ))}
+            {audioTracks.length > 0 && (
+              <button
+                onClick={() => {
+                  setIsAllPlaying(!isAllPlaying);
+                  audioTracks.forEach(track => {
+                    if (track.isReady && track.waveSurfer) {
+                      isAllPlaying ? track.waveSurfer.pause() : track.waveSurfer.play();
+                    }
+                  });
+                  setAudioTracks(prev =>
+                    prev.map(t =>
+                      t.isReady ? { ...t, isPlaying: !isAllPlaying } : t
+                    )
+                  );
+                }}
+                className="
+                  flex items-center gap-2 px-6 py-3 
+                  bg-gray-800 text-purple-300 
+                  rounded-lg
+                  hover:bg-gray-700 
+                  transition-colors duration-300
+                  shadow-lg shadow-black/50
+                "
+              >
+                {isAllPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                {isAllPlaying ? 'Pause All' : 'Play All'}
+              </button>
+            )}
+          </div>
+          
+          <div className="space-y-2"> 
+            {audioTracks.map((track, index) => (
+              <TrackItem
+                key={track.id}
+                track={track}
+                index={index}
+                moveTrack={moveTrack}
+                toggleMute={toggleMute}
+                handleVolumeChange={handleVolumeChange}
+                removeTrack={removeTrack}
+                togglePlayPause={togglePlayPause}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  </DndProvider>
-);
+    </DndProvider>
+  );
 }
